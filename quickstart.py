@@ -25,28 +25,6 @@ async def on_message(message):
         return
     if message.content == "Hello":
         await bot.send_message(message.channel, "World")
-    # if message.content.startswith("~move "):  # `~move <name> set <x> <y>` Absolute
-    #     args = shlex.split(message.content[6:])  # `~move <name> <x> <y>`     Relative
-    #     name = args[0]  # Name is the first arg
-    #     combatant = objects.get_combatant(name)  # Get combatant name `name`
-    #     if args[1] == 'set':  # If Set, then use absolute
-    #         abso = True
-    #         x = args[2]
-    #         y = int(args[3])
-    #     else:  # Else Relative
-    #         abso = False
-    #         x = args[1]
-    #         y = int(args[2])
-    #     if combatant:  # If combatant found
-    #         Move = move(build, combatant, x, y, abso)  # Move combatant
-    #         await bot.change_presence(game=discord.Game(name="Updating..."))
-    #         build = GetPresentation(PRESENTATION_ID)  # Update Build
-    #         objects = ObjectList(build)  # Update Object List
-    #         await bot.send_message(message.channel, Move.message)  # Send move message
-    #         await bot.change_presence(game=discord.Game(name="Making a bot"))
-    #     else:  # Else Return Error
-    #         await bot.send_message(message.channel,
-    #                                   "Error: No combatant found named '{}'".format(name))
     await bot.process_commands(message)
 
 

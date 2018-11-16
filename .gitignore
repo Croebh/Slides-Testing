@@ -1,3 +1,5 @@
 *.json
 credentials.py
-.idea/*
+/.idea/
+/__pycache__/
+*.pyc
