@@ -2,6 +2,7 @@ from __future__ import print_function
 from oauth2client import file, client, tools
 from googleapiclient.discovery import build
 from httplib2 import Http
+import math
 
 
 class ObjectList:
@@ -34,7 +35,7 @@ class ObjectList:
                     Y = element['elementGroup']['children'][0]['transform'].get('translateY', 0) / emu
                     a = round(((x + X) * 10) / 10 + 1)
                     b = round(((y + Y) * 10) / 10 + 1)
-                    temp['coords'] = (AlphConv(a), int(b))
+                    temp['coords'] = (int(a), int(b))
                     scaleX = element['elementGroup']['children'][0]['transform'].get('scaleX', 0)
                     scaleY = element['elementGroup']['children'][0]['transform'].get('scaleY', 0)
                     magY = element['elementGroup']['children'][0]['size']['height'].get('magnitude', 0)
@@ -54,8 +55,9 @@ class ObjectList:
 
     def get_combatant(self, name):
         for x in self.list:
-            if name.lower() in x.get('name').lower():
-                return simpleCombatant(self.presentation, x)
+            if name:
+                if name.lower() in x.get('name').lower():
+                    return simpleCombatant(self.presentation, x)
 
 
 class simpleCombatant:
@@ -110,9 +112,8 @@ class move:
         self.message = ""
         if absolute:
             X, Y = combatant.coords
-            X = AlphConv(X)
             self.message += "Moving {0.name} to {1}, {2}\n".format(
-                self, AlphConv(x), y)
+                self, x, y)
             x = x - X
             y = y - Y
         x = x * emu
@@ -147,3 +148,79 @@ class move:
                 self.name)
         presentation.service.presentations().batchUpdate(presentationId=presentation.id,
                                                          body={'requests': req}).execute()
+
+
+def compass(pointA, pointB):
+    """
+    Calculates the bearing between two points.
+    The formulae used is the following:
+        θ = atan2(sin(Δlong).cos(lat2),
+                  cos(lat1).sin(lat2) − sin(lat1).cos(lat2).cos(Δlong))
+    :Parameters:
+      - `pointA: The tuple representing the latitude/longitude for the
+        first point. Latitude and longitude must be in decimal degrees
+      - `pointB: The tuple representing the latitude/longitude for the
+        second point. Latitude and longitude must be in decimal degrees
+    :Returns:
+      The bearing in degrees
+    :Returns Type:
+      float
+    """
+    if (type(pointA) != tuple) or (type(pointB) != tuple):
+        raise TypeError("Only tuples are supported as arguments")
+
+    lat1 = math.radians(pointA[0])
+    lat2 = math.radians(pointB[0])
+
+    diffLong = math.radians(pointB[1] - pointA[1])
+
+    x = math.sin(diffLong) * math.cos(lat2)
+    y = math.cos(lat1) * math.sin(lat2) - (math.sin(lat1)
+            * math.cos(lat2) * math.cos(diffLong))
+
+    initial_bearing = math.atan2(x, y)
+
+    # Now we have the initial bearing but math.atan2 return values
+    # from -180° to + 180° which is not what we want for a compass bearing
+    # The solution is to normalize the initial bearing as shown below
+    initial_bearing = math.degrees(initial_bearing)
+    compass_bearing = (initial_bearing + 360) % 360
+    compass_bearing = round(compass_bearing,2)
+
+    return compass_bearing
+
+
+class Distance:
+    def __init__(self, pointA, pointB):
+        if (type(pointA) != tuple) or (type(pointB) != tuple):
+            raise TypeError("Only tuples are supported as arguments")
+
+        x1,y1 = pointA.coords
+        x2,y2 = pointB.coords
+        dist = math.sqrt( (x2 - x1)**2 + (y2 - y1)**2 )
+        dist = round(dist,2)
+
+        self.dist = dist
+        self.ft = math.floor(dist*5)
+
+        lat1 = math.radians(pointA.coords[0])
+        lat2 = math.radians(pointB.coords[0])
+
+        diffLong = math.radians(pointB.coords[1] - pointA.coords[1])
+
+        x = math.sin(diffLong) * math.cos(lat2)
+        y = math.cos(lat1) * math.sin(lat2) - (math.sin(lat1)
+                                               * math.cos(lat2) * math.cos(diffLong))
+
+        initial_bearing = math.atan2(x, y)
+
+        # Now we have the initial bearing but math.atan2 return values
+        # from -180° to + 180° which is not what we want for a compass bearing
+        # The solution is to normalize the initial bearing as shown below
+        initial_bearing = math.degrees(initial_bearing)
+        compass_bearing = (initial_bearing + 360) % 360
+        self.degree = round(compass_bearing, 2)
+        compass_list =  ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE",
+                         "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW", "N"]
+        ix = int((self.degree + 11.25) / 22.5)
+        self.compass = compass_list[ix % 16]

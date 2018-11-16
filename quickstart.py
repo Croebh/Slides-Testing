@@ -47,6 +47,28 @@ async def pos(name: str):
         await bot.say('Error: No combatant found named {}'.format(name))
 
 
+@bot.command(pass_context=True, aliases=['comp', 'distance'])
+async def compass(ctx, name1, name2=None):
+    combatant1 = objects.get_combatant(name1)
+    combatant2 = objects.get_combatant(name2)
+    if combatant1 and not combatant2:
+        out = []
+        out.append("{0.name} is at {0.coords}".format(combatant1))
+        for other in objects.list:
+            if other['objectId'] != combatant1.objectId:
+                combatant2 = objects.get_combatant(other['name'])
+                distance = functions.Distance(combatant1, combatant2)
+                out.append("{0.name} is {1.ft} ft {1.compass} ({1.degree}°) at {0.coords}".format(
+                    combatant2, distance
+                ))
+        await bot.say('\n'.join(out))
+    elif combatant1 and combatant2:
+        distance = functions.Distance(combatant1, combatant2)
+        await bot.say("{0.name} is {2.ft} feet from {1.name}, on the heading {2.compass} ({2.degree}°) at {1.coords}".format(
+            combatant1, combatant2, distance
+        ))
+
+
 @bot.command()
 async def get(name: str):
     combatant = objects.get_combatant(name)
@@ -94,7 +116,7 @@ async def refresh(ctx):
     await bot.say('Updated!')
     await bot.change_presence(game=discord.Game(name="Making a bot"))
 
-#
+
 # @bot.event
 # async def on_command_error(error, ctx):
 #     channel = ctx.message.channel
