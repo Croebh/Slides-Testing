@@ -94,6 +94,7 @@ async def move(ctx, name, *, args):
         x = args[0]
         y = int(args[1])
     if combatant:  # If combatant found
+        await bot.send_typing(ctx.message.channel)
         Move = functions.move(build, combatant, x, y, abso)  # Move combatant
         await bot.change_presence(game=discord.Game(name="Updating..."))
         build = functions.GetPresentation(PRESENTATION_ID)  # Update Build
@@ -109,10 +110,11 @@ async def refresh(ctx):
     global build
     global objects
     await bot.change_presence(game=discord.Game(name="Updating..."))
+    await bot.send_typing(ctx.message.channel)
     build = functions.GetPresentation(PRESENTATION_ID)  # Update Build
     objects = functions.ObjectList(build)  # Update Object List
+    await bot.say('Updated!')
     await bot.change_presence(game=discord.Game(name="Making a bot"))
-    await bot.add_reaction(ctx.message, '\u2705')
 
 #
 # @bot.event

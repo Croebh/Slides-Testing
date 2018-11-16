@@ -1,2 +1,4 @@
 *.json
 credentials.py
+*.xml
+*.xml
