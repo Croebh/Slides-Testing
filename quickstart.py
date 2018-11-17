@@ -151,11 +151,14 @@ async def move(ctx, name, *, args):
     if combatant:  # If combatant found
         await bot.send_typing(ctx.message.channel)
         Move = functions.move(build, combatant, x, y, abso)  # Move combatant
-        await bot.change_presence(game=discord.Game(name="Updating..."))
-        build = functions.GetPresentation(PRESENTATION_ID)  # Update Build
-        objects = functions.ObjectList(build)  # Update Object List
-        await bot.say(Move.message)  # Send move message
-        await bot.change_presence(game=discord.Game(name="Making a bot"))
+        if Move.moving:
+            await bot.change_presence(game=discord.Game(name="Updating..."))
+            build = functions.GetPresentation(PRESENTATION_ID)  # Update Build
+            objects = functions.ObjectList(build)  # Update Object List
+            await bot.change_presence(game=discord.Game(name="Making a bot"))
+        embed = discord.Embed(title="Moving {}".format(combatant.name))
+        embed.add_field(name=Move.title, value=Move.message)
+        await bot.say(embed=embed)  # Send move message
     else:  # Else Return Error
         await bot.say("Error: No combatant found named '{}'".format(name))
 

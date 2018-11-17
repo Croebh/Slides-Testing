@@ -112,13 +112,15 @@ class move:
             else:
                 x = int(x)
         self.name = combatant.name
-        self.message = ""
         if absolute:
             X, Y = combatant.coords
-            self.message += "Moving {0.name} to {1}, {2}\n".format(
-                self, x, y)
+            self.title = "({0.pos}) -> ({1}, {2})".format(
+                combatant, AlphConv(x), y)
             x = x - X
             y = y - Y
+        else:
+            self.title = "({0.pos}) -> ({1}, {2})".format(
+                combatant, AlphConv(combatant.coords[0]+x), combatant.coords[1]+y)
         x = x * emu
         y = y * emu
         req = [
@@ -136,21 +138,24 @@ class move:
                 }
             }
         ]
+        self.moving = True
         if x and y:
-            self.message += "Moving {} : {} {} and {} {}".format(
-                self.name, int(abs(x) / emu), 'Left' if x < 0 else 'Right', int(abs(y) / emu),
-                'Up' if y < 0 else 'Down')
+            self.message = "{} {} and {} {}".format(
+                int(abs(x) / emu),
+                'West' if x < 0 else 'East', int(abs(y) / emu),
+                'North' if y < 0 else 'South')
         elif x and not y:
-            self.message += "Moving {} : {} {}".format(
-                self.name, int(abs(x) / emu), 'Left' if x < 0 else 'Right')
+            self.message = "{} {}".format(
+                int(abs(x) / emu), 'West' if x < 0 else 'East')
         elif y and not x:
-            self.message += "Moving {} : {} {}".format(
-                self.name, int(abs(y) / emu), 'Up' if y < 0 else 'Down')
+            self.message = "{} {}".format(
+                int(abs(y) / emu), 'North' if y < 0 else 'South')
         else:
-            self.message = "Not moving {}".format(
-                self.name)
-        presentation.service.presentations().batchUpdate(presentationId=presentation.id,
-                                                         body={'requests': req}).execute()
+            self.message = "Not moving"
+            self.moving = False
+        if self.moving:
+            presentation.service.presentations().batchUpdate(presentationId=presentation.id,
+                                                             body={'requests': req}).execute()
 
 
 class Distance:
