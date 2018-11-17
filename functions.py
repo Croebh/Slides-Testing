@@ -66,6 +66,9 @@ class simpleCombatant:
         self.name = name.get('name')
         self.coords = tuple(name.get('coords'))
         self.size = name.get('size')
+        x = AlphConv(self.coords[0])
+        y = self.coords[1]
+        self.pos = "{}, {}".format(x, y)
 
 
 # Converts alpha coords to and from integers (A-1 ,B-2....Z-26)
@@ -74,11 +77,11 @@ def AlphConv(coord):
     alph += [i+i for i in alph]
     if type(coord) == str:
         if coord.isalpha():
-            return alph.index(coord)+1
+            return alph.index(coord.upper())+1
         elif coord.isdigit():
             return int(coord)
     elif type(coord) == int:
-        if coord>len(alph):
+        if coord > len(alph):
             return coord
         return alph[coord-1]
 
@@ -157,25 +160,17 @@ class Distance:
         if isinstance(pointA, simpleCombatant):
             x1 ,y1 = pointA.coords
 
-            print("x1 {} {}".format(
-                x1, y1
-            ))
+
             if pointA.size != "Medium":
                 x1 += 0.5
                 y1 += 0.5
-            print("x1 {} {}".format(
-                x1, y1))
         else:
             x1, y1 = pointA
         if isinstance(pointB, simpleCombatant):
             x2 ,y2 = pointB.coords
-            print("x2 {} {}".format(
-                x2, y2))
             if pointB.size != "Medium":
                 x2 += 0.5
                 y2 += 0.5
-            print("x2 {} {}".format(
-                x2, y2))
         else:
             x2, y2 = pointB
         dist = math.sqrt( (x2 - x1)**2 + (y2 - y1)**2 )
@@ -199,10 +194,10 @@ class Distance:
         # from -180° to + 180° which is not what we want for a compass bearing
         # The solution is to normalize the initial bearing as shown below
         initial_bearing = math.degrees(initial_bearing)
-        compass_bearing = (initial_bearing + 360) % 360
+        compass_bearing = (initial_bearing + 180)
         self.degree = round(compass_bearing, 2)
-        compass_list =  ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE",
-                         "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW", "N"]
+        compass_list =  ["W", "WNW", "NW", "NNW", "N", "NNE", "NE", "ENE",
+                         "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W"]
         ix = int((self.degree + 11.25) / 22.5)
         self.compass = compass_list[ix % 16]
-        self.quad = ['North','East','South','West'][int((((self.degree-45)//90)+1)%4)]
+        self.quad = ['West','North','East','South'][int((((self.degree-45)//90)+1)%4)]

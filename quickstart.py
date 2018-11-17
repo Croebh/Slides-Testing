@@ -1,5 +1,6 @@
 import shlex
 import discord
+import re
 from discord.ext import commands
 
 
@@ -42,7 +43,7 @@ async def pos(name: str):
     print('Getting coords for - '+name)
     combatant = objects.get_combatant(name)
     if combatant:
-        await bot.say("{0.name} is at ({0.coords[0]}, {0.coords[1]})".format(combatant))
+        await bot.say("{0.name} is at ({0.pos})".format(combatant))
     else:
         await bot.say('Error: No combatant found named {}'.format(name))
 
@@ -51,45 +52,63 @@ async def pos(name: str):
 async def compass(ctx, name1, name2=None):
     combatant1 = objects.get_combatant(name1)
     combatant2 = objects.get_combatant(name2)
+    r = re.compile(r"(\d+)(?: ft.)")
     if combatant1 and not combatant2:
-        out = []
-        out.append("{0.name} is at {0.coords}".format(combatant1))
+        embed = discord.Embed(title="{0.name} is at ({0.pos})".format(combatant1))
+        out = {"North": [], "West": [], "South": [], "East": []}
         for other in objects.list:
             if other['objectId'] != combatant1.objectId:
                 combatant2 = objects.get_combatant(other['name'])
                 distance = functions.Distance(combatant1, combatant2)
-                out.append("{0.name} is {1.ft} ft {1.compass} ({1.degree}°) at {0.coords} - Quadrant {1.quad}".format(
+                out[distance.quad].append("{0.name} is {1.ft} ft {1.compass} ({1.degree}°) at ({0.pos})".format(
                     combatant2, distance
                 ))
-        await bot.say('\n'.join(out))
+        for i in out:
+            if out[i]:
+                out[i].sort(key=lambda x :int(r.search(x).group(1)))
+                embed.add_field(name=i,value="\n".join(out[i]))
+        await bot.say(embed=embed)
     elif combatant1 and combatant2:
         distance = functions.Distance(combatant1, combatant2)
-        await bot.say("{0.name} is {2.ft} feet from {1.name}, on the heading {2.compass} ({2.degree}°) at {1.coords} {2.quad}".format(
-            combatant1, combatant2, distance))
+        embed = discord.Embed(title="{0.name} is at ({0.pos})".format(combatant1))
+        embed.add_field(name="{0.name} is at ({0.pos})".format(combatant2),
+                        value="{0.ft} ft. away, {0.compass} ({0.degree}°)".format(distance))
+        await bot.say(embed=embed)
+
 
 @bot.command(pass_context=True)
 async def range(ctx, x, y:int, maxrange:int=None):
-    if type(x) == str:
+    if str(x).isalpha():
+        x = x.upper()
+        embed = discord.Embed(title="Distances from ({}, {})".format(x, y))
         x = functions.AlphConv(x.upper())
+    else:
+        embed = discord.Embed(title="Distances from ({}, {})".format(functions.AlphConv(int(x)), y))
     base = (int(x), int(y)  )
     out = []
+    r = re.compile(r"(\d+)(?: ft.)")
     for i in objects.list:
         combatant = objects.get_combatant(i['name'])
         distance = functions.Distance(base,combatant)
         if maxrange:
             if distance.ft >= maxrange:
                 continue
-        out.append("{0.name} is {1.ft} {1.compass} away".format(combatant, distance))
+        out.append("{0.name} is {1.ft} ft. {1.compass} away at ({0.pos})".format(combatant, distance))
     if out:
-        await bot.say('\n'.join(out))
+        out.sort(key=lambda x :int(r.search(x).group(1)))
+        out = '\n'.join(out)
     else:
-        await bot.say('No combatants in range.')
+        out = 'No combatants in range.'
+    if maxrange:
+        embed.title = embed.title + ', max range of {} ft.'.format(maxrange)
+    embed.description = out
+    await bot.say(embed=embed)
 
 @bot.command()
 async def get(name: str):
     combatant = objects.get_combatant(name)
     if combatant:
-        await bot.say('{0.name} is a creature of {0.size} size, at coordinates {0.coords}, and whose id is {0.objectId}'.format(
+        await bot.say('{0.name} is a creature of {0.size} size, at coordinates ({0.pos}), and whose id is {0.objectId}'.format(
                                    combatant))
     else:
         await bot.say("Error: No combatant found named '{}'".format(name))
