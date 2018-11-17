@@ -65,9 +65,25 @@ async def compass(ctx, name1, name2=None):
     elif combatant1 and combatant2:
         distance = functions.Distance(combatant1, combatant2)
         await bot.say("{0.name} is {2.ft} feet from {1.name}, on the heading {2.compass} ({2.degree}°) at {1.coords} {2.quad}".format(
-            combatant1, combatant2, distance
-        ))
+            combatant1, combatant2, distance))
 
+@bot.command(pass_context=True)
+async def range(ctx, x, y:int, maxrange:int=None):
+    if type(x) == str:
+        x = functions.AlphConv(x.upper())
+    base = (int(x), int(y)  )
+    out = []
+    for i in objects.list:
+        combatant = objects.get_combatant(i['name'])
+        distance = functions.Distance(base,combatant)
+        if maxrange:
+            if distance.ft >= maxrange:
+                continue
+        out.append("{0.name} is {1.ft} {1.compass} away".format(combatant, distance))
+    if out:
+        await bot.say('\n'.join(out))
+    else:
+        await bot.say('No combatants in range.')
 
 @bot.command()
 async def get(name: str):

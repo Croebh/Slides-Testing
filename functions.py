@@ -152,8 +152,7 @@ class move:
 
 class Distance:
     def __init__(self, pointA, pointB):
-        if (type(pointA.coords) != tuple) or (type(pointB.coords) != tuple) or (not isinstance(pointA, simpleCombatant)) or (not isinstance(pointB, simpleCombatant)):
-            raise TypeError("Only tuples and combatants are supported as arguments")
+
 
         if isinstance(pointA, simpleCombatant):
             x1 ,y1 = pointA.coords
@@ -206,4 +205,4 @@ class Distance:
                          "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW", "N"]
         ix = int((self.degree + 11.25) / 22.5)
         self.compass = compass_list[ix % 16]
-        self.quad = ['North','East','South','West'][int(((self.degree-45)//90)+1)]
+        self.quad = ['North','East','South','West'][int((((self.degree-45)//90)+1)%4)]
