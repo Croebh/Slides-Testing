@@ -49,8 +49,20 @@ async def pos(name: str):
 
 
 @bot.command(pass_context=True, aliases=['comp', 'distance'])
-async def compass(ctx, name1, name2=None):
+async def compass(ctx, name1, *, args=None):
     combatant1 = objects.get_combatant(name1)
+    name2 = None
+    quad = False
+    if args:
+        args = shlex.split(args)
+        if len(args)>=2:
+            name2 = args[0]
+            quad = args[1]
+        elif len(args) == 1:
+            if str(args[0]).lower() in ["true", "quad", "quadrant"]:
+                quad = True
+            else:
+                name2 = args[0]
     combatant2 = objects.get_combatant(name2)
     r = re.compile(r"(\d+)(?: ft.)")
     if combatant1 and not combatant2:
@@ -63,10 +75,18 @@ async def compass(ctx, name1, name2=None):
                 out[distance.quad].append("{0.name} is {1.ft} ft {1.compass} ({1.degree}°) at ({0.pos})".format(
                     combatant2, distance
                 ))
-        for i in out:
-            if out[i]:
-                out[i].sort(key=lambda x :int(r.search(x).group(1)))
-                embed.add_field(name=i,value="\n".join(out[i]))
+        if quad:
+            for i in out:
+                if out[i]:
+                    out[i].sort(key=lambda x :int(r.search(x).group(1)))
+                    embed.add_field(name=i,value="\n".join(out[i]))
+        else:
+            outGroup = []
+            for i in out:
+                if out[i]:
+                    outGroup += out[i]
+            outGroup.sort(key=lambda x : int(r.search(x).group(1)))
+            embed.description = "\n".join(outGroup)
         await bot.say(embed=embed)
     elif combatant1 and combatant2:
         distance = functions.Distance(combatant1, combatant2)
