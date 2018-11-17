@@ -58,13 +58,13 @@ async def compass(ctx, name1, name2=None):
             if other['objectId'] != combatant1.objectId:
                 combatant2 = objects.get_combatant(other['name'])
                 distance = functions.Distance(combatant1, combatant2)
-                out.append("{0.name} is {1.ft} ft {1.compass} ({1.degree}°) at {0.coords}".format(
+                out.append("{0.name} is {1.ft} ft {1.compass} ({1.degree}°) at {0.coords} - Quadrant {1.quad}".format(
                     combatant2, distance
                 ))
         await bot.say('\n'.join(out))
     elif combatant1 and combatant2:
         distance = functions.Distance(combatant1, combatant2)
-        await bot.say("{0.name} is {2.ft} feet from {1.name}, on the heading {2.compass} ({2.degree}°) at {1.coords}".format(
+        await bot.say("{0.name} is {2.ft} feet from {1.name}, on the heading {2.compass} ({2.degree}°) at {1.coords} {2.quad}".format(
             combatant1, combatant2, distance
         ))
 

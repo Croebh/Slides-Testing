@@ -150,63 +150,45 @@ class move:
                                                          body={'requests': req}).execute()
 
 
-def compass(pointA, pointB):
-    """
-    Calculates the bearing between two points.
-    The formulae used is the following:
-        θ = atan2(sin(Δlong).cos(lat2),
-                  cos(lat1).sin(lat2) − sin(lat1).cos(lat2).cos(Δlong))
-    :Parameters:
-      - `pointA: The tuple representing the latitude/longitude for the
-        first point. Latitude and longitude must be in decimal degrees
-      - `pointB: The tuple representing the latitude/longitude for the
-        second point. Latitude and longitude must be in decimal degrees
-    :Returns:
-      The bearing in degrees
-    :Returns Type:
-      float
-    """
-    if (type(pointA) != tuple) or (type(pointB) != tuple):
-        raise TypeError("Only tuples are supported as arguments")
-
-    lat1 = math.radians(pointA[0])
-    lat2 = math.radians(pointB[0])
-
-    diffLong = math.radians(pointB[1] - pointA[1])
-
-    x = math.sin(diffLong) * math.cos(lat2)
-    y = math.cos(lat1) * math.sin(lat2) - (math.sin(lat1)
-            * math.cos(lat2) * math.cos(diffLong))
-
-    initial_bearing = math.atan2(x, y)
-
-    # Now we have the initial bearing but math.atan2 return values
-    # from -180° to + 180° which is not what we want for a compass bearing
-    # The solution is to normalize the initial bearing as shown below
-    initial_bearing = math.degrees(initial_bearing)
-    compass_bearing = (initial_bearing + 360) % 360
-    compass_bearing = round(compass_bearing,2)
-
-    return compass_bearing
-
-
 class Distance:
     def __init__(self, pointA, pointB):
-        if (type(pointA) != tuple) or (type(pointB) != tuple):
-            raise TypeError("Only tuples are supported as arguments")
+        if (type(pointA.coords) != tuple) or (type(pointB.coords) != tuple) or (not isinstance(pointA, simpleCombatant)) or (not isinstance(pointB, simpleCombatant)):
+            raise TypeError("Only tuples and combatants are supported as arguments")
 
-        x1,y1 = pointA.coords
-        x2,y2 = pointB.coords
+        if isinstance(pointA, simpleCombatant):
+            x1 ,y1 = pointA.coords
+
+            print("x1 {} {}".format(
+                x1, y1
+            ))
+            if pointA.size != "Medium":
+                x1 += 0.5
+                y1 += 0.5
+            print("x1 {} {}".format(
+                x1, y1))
+        else:
+            x1, y1 = pointA
+        if isinstance(pointB, simpleCombatant):
+            x2 ,y2 = pointB.coords
+            print("x2 {} {}".format(
+                x2, y2))
+            if pointB.size != "Medium":
+                x2 += 0.5
+                y2 += 0.5
+            print("x2 {} {}".format(
+                x2, y2))
+        else:
+            x2, y2 = pointB
         dist = math.sqrt( (x2 - x1)**2 + (y2 - y1)**2 )
         dist = round(dist,2)
 
         self.dist = dist
         self.ft = math.floor(dist*5)
 
-        lat1 = math.radians(pointA.coords[0])
-        lat2 = math.radians(pointB.coords[0])
+        lat1 = math.radians(x1)
+        lat2 = math.radians(x2)
 
-        diffLong = math.radians(pointB.coords[1] - pointA.coords[1])
+        diffLong = math.radians(y2 - y1)
 
         x = math.sin(diffLong) * math.cos(lat2)
         y = math.cos(lat1) * math.sin(lat2) - (math.sin(lat1)
@@ -224,3 +206,4 @@ class Distance:
                          "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW", "N"]
         ix = int((self.degree + 11.25) / 22.5)
         self.compass = compass_list[ix % 16]
+        self.quad = ['North','East','South','West'][int(((self.degree-45)//90)+1)]
