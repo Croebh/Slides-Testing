@@ -163,6 +163,10 @@ async def move(ctx, name, *, args):
         await bot.say("Error: No combatant found named '{}'".format(name))
 
 
+@bot.command(pass_context=True)
+async def size(ctx):
+    await bot.say("Size of the slide is {} Squares.".format(build.size))
+
 @bot.command(pass_context=True, aliases=['update'])
 async def refresh(ctx):
     global build

@@ -91,6 +91,7 @@ class GetPresentation:
     def __init__(self, id):
         store = file.Storage('token.json')
         creds = store.get()
+        emu = 914400 / 2
         if not creds or creds.invalid:
             flow = client.flow_from_clientsecrets('credentials.json', SCOPES)
             creds = tools.run_flow(flow, store)
@@ -100,6 +101,9 @@ class GetPresentation:
         self.presentation = self.service.presentations().get(
             presentationId=self.id).execute()
         self.slides = self.presentation.get('slides')
+        self.size = []
+        self.size.append(int(self.presentation.get('pageSize').get('width').get('magnitude')/emu))
+        self.size.append(int(self.presentation.get('pageSize').get('height').get('magnitude')/emu))
 
 
 # Moves a given object a certain number of squares (0.5"), given by x and y transforms
@@ -115,12 +119,17 @@ class move:
         if absolute:
             X, Y = combatant.coords
             self.title = "({0.pos}) -> ({1}, {2})".format(
-                combatant, AlphConv(x), y)
+                combatant, AlphConv(min(x, presentation.size[0])), min(presentation.size[1],y))
             x = x - X
             y = y - Y
         else:
             self.title = "({0.pos}) -> ({1}, {2})".format(
-                combatant, AlphConv(combatant.coords[0]+x), combatant.coords[1]+y)
+                combatant, AlphConv(min(presentation.size[0], combatant.coords[0]+x)),
+                min(presentation.size[1], combatant.coords[1]+y))
+        if x + combatant.coords[0] > presentation.size[0]:
+            x = presentation.size[0] - combatant.coords[0]
+        if y + combatant.coords[1] > presentation.size[1]:
+            y = presentation.size[1] - combatant.coords[1]
         x = x * emu
         y = y * emu
         req = [
