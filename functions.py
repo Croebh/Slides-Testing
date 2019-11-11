@@ -1,9 +1,43 @@
-from __future__ import print_function
-from oauth2client import file, client, tools
-from googleapiclient.discovery import build
-from httplib2 import Http
-import math
+from google_auth_oauthlib.flow import InstalledAppFlow
+from google.auth.transport.requests import Request
 
+from googleapiclient.discovery import build
+from constants import emu
+import pickle
+import os.path
+import math
+SCOPES = 'https://www.googleapis.com/auth/presentations'
+
+
+# Get the presentation
+class GetPresentation:
+    def __init__(self, id):
+        creds = None
+        # The file token.pickle stores the user's access and refresh tokens, and is
+        # created automatically when the authorization flow completes for the first
+        # time.
+        if os.path.exists('token.pickle'):
+            with open('token.pickle', 'rb') as token:
+                creds = pickle.load(token)
+        # If there are no (valid) credentials available, let the user log in.
+        if not creds or not creds.valid:
+            if creds and creds.expired and creds.refresh_token:
+                creds.refresh(Request())
+            else:
+                flow = InstalledAppFlow.from_client_secrets_file('credentials.json', SCOPES)
+                creds = flow.run_local_server(port=0)
+            # Save the credentials for the next run
+            with open('token.pickle', 'wb') as token:
+                pickle.dump(creds, token)
+        self.service = build('slides', 'v1', credentials=creds)
+        self.id = id
+        # Call the Slides API
+        self.presentation = self.service.presentations().get(
+            presentationId=self.id).execute()
+        self.slides = self.presentation.get('slides')
+        self.size = []
+        self.size.append(int(self.presentation.get('pageSize').get('width').get('magnitude')/emu))
+        self.size.append(int(self.presentation.get('pageSize').get('height').get('magnitude')/emu))
 
 class ObjectList:
     def __init__(self, presentation, slide: int = 0):
@@ -31,10 +65,10 @@ class ObjectList:
 
                     x = element['transform'].get('translateX',0) / emu
                     y = element['transform'].get('translateY',0) / emu
-                    X = element['elementGroup']['children'][0]['transform'].get('translateX', 0) / emu
-                    Y = element['elementGroup']['children'][0]['transform'].get('translateY', 0) / emu
-                    a = round(((x + X) * 10) / 10 + 1)
-                    b = round(((y + Y) * 10) / 10 + 1)
+                    X = element.get('elementGroup')['children'][0]['transform'].get('translateX', 0) / emu
+                    Y = element.get('elementGroup')['children'][0]['transform'].get('translateY', 0) / emu
+                    a = round(((x + X) * 10) / 10 + 4)
+                    b = round(((y + Y) * 10) / 10 + 4)
                     temp['coords'] = (int(a), int(b))
                     scaleX = element['elementGroup']['children'][0]['transform'].get('scaleX', 0)
                     scaleY = element['elementGroup']['children'][0]['transform'].get('scaleY', 0)
@@ -53,7 +87,7 @@ class ObjectList:
                     out.append(temp)
         self.list = out
 
-    def get_combatant(self, name):
+    def get_combatant(self, name: str):
         for x in self.list:
             if name:
                 if name.lower() in x.get('name').lower():
@@ -86,24 +120,7 @@ def AlphConv(coord):
         return alph[coord-1]
 
 
-# Get the presentation
-class GetPresentation:
-    def __init__(self, id):
-        store = file.Storage('token.json')
-        creds = store.get()
-        emu = 914400 / 2
-        if not creds or creds.invalid:
-            flow = client.flow_from_clientsecrets('credentials.json', SCOPES)
-            creds = tools.run_flow(flow, store)
-        self.service = build('slides', 'v1', http=creds.authorize(Http()))
-        self.id = id
-        # Call the Slides API
-        self.presentation = self.service.presentations().get(
-            presentationId=self.id).execute()
-        self.slides = self.presentation.get('slides')
-        self.size = []
-        self.size.append(int(self.presentation.get('pageSize').get('width').get('magnitude')/emu))
-        self.size.append(int(self.presentation.get('pageSize').get('height').get('magnitude')/emu))
+
 
 
 # Moves a given object a certain number of squares (0.5"), given by x and y transforms

@@ -2,6 +2,9 @@ import shlex
 import discord
 import re
 from discord.ext import commands
+from discord.errors import Forbidden, HTTPException, NotFound
+from discord.ext.commands.errors import CommandInvokeError
+import functions
 
 
 # If modifying these scopes, delete the file token.json.
@@ -10,12 +13,11 @@ SCOPES = 'https://www.googleapis.com/auth/presentations'
 # The ID of a sample presentation.
 PRESENTATION_ID = '1iPbghn_hquZlwZDpKzOttonCl5tyF8809q8NJJOgT0w'
 
-import functions
 
 build = functions.GetPresentation(PRESENTATION_ID)
 objects = functions.ObjectList(build)
 
-bot = commands.Bot(command_prefix='~', description="Insert-Description")
+bot = commands.Bot(command_prefix='~')
 
 
 @bot.event
@@ -25,30 +27,31 @@ async def on_message(message):
     if message.author == bot.user:
         return
     if message.content == "Hello":
-        await bot.send_message(message.channel, "World")
+        await message.channel.send("World")
     await bot.process_commands(message)
 
 
-@bot.command(pass_context=True)
+@bot.command()
 async def exit(ctx):
     if ctx.message.author.id == Credentials().owner:
-        await bot.add_reaction(ctx.message, '\u2705')
+        await ctx.add_reaction('\u2705')
         await bot.logout()
     else:
-        await bot.say("Error: You are not authorized to use this command")
+        await ctx.send("Error: You are not authorized to use this command")
 
 
 @bot.command(name='pos', aliases=['position', 'p'])
-async def pos(name: str):
+async def pos(ctx, name: str):
+    print(name)
     print('Getting coords for - '+name)
     combatant = objects.get_combatant(name)
     if combatant:
-        await bot.say("{0.name} is at ({0.pos})".format(combatant))
+        await ctx.send("{0.name} is at ({0.pos})".format(combatant))
     else:
-        await bot.say('Error: No combatant found named {}'.format(name))
+        await ctx.send('Error: No combatant found named {}'.format(name))
 
 
-@bot.command(pass_context=True, aliases=['comp', 'distance'])
+@bot.command(aliases=['comp', 'distance'])
 async def compass(ctx, name1, *, args=None):
     combatant1 = objects.get_combatant(name1)
     name2 = None
@@ -87,16 +90,16 @@ async def compass(ctx, name1, *, args=None):
                     outGroup += out[i]
             outGroup.sort(key=lambda x : int(r.search(x).group(1)))
             embed.description = "\n".join(outGroup)
-        await bot.say(embed=embed)
+        await ctx.message.channel.send(embed=embed)
     elif combatant1 and combatant2:
         distance = functions.Distance(combatant1, combatant2)
         embed = discord.Embed(title="{0.name} is at ({0.pos})".format(combatant1))
         embed.add_field(name="{0.name} is at ({0.pos})".format(combatant2),
                         value="{0.ft} ft. away, {0.compass} ({0.degree}°)".format(distance))
-        await bot.say(embed=embed)
+        await ctx.send(embed=embed)
 
 
-@bot.command(pass_context=True)
+@bot.command()
 async def range(ctx, x, y:int, maxrange:int=None):
     if str(x).isalpha():
         x = x.upper()
@@ -122,19 +125,19 @@ async def range(ctx, x, y:int, maxrange:int=None):
     if maxrange:
         embed.title = embed.title + ', max range of {} ft.'.format(maxrange)
     embed.description = out
-    await bot.say(embed=embed)
+    await ctx.send(embed=embed)
 
 @bot.command()
-async def get(name: str):
+async def get(ctx, name: str):
     combatant = objects.get_combatant(name)
     if combatant:
-        await bot.say('{0.name} is a creature of {0.size} size, at coordinates ({0.pos}), and whose id is {0.objectId}'.format(
+        await ctx.send('{0.name} is a creature of {0.size} size, at coordinates ({0.pos}), and whose id is {0.objectId}'.format(
                                    combatant))
     else:
-        await bot.say("Error: No combatant found named '{}'".format(name))
+        await ctx.message.channel.send("Error: No combatant found named '{}'".format(name))
 
 
-@bot.command(pass_context=True)
+@bot.command()
 async def move(ctx, name, *, args):
     global build
     global objects
@@ -149,46 +152,81 @@ async def move(ctx, name, *, args):
         x = args[0]
         y = int(args[1])
     if combatant:  # If combatant found
-        await bot.send_typing(ctx.message.channel)
-        Move = functions.move(build, combatant, x, y, abso)  # Move combatant
-        if Move.moving:
-            await bot.change_presence(game=discord.Game(name="Updating..."))
-            build = functions.GetPresentation(PRESENTATION_ID)  # Update Build
-            objects = functions.ObjectList(build)  # Update Object List
-            await bot.change_presence(game=discord.Game(name="Making a bot"))
+        async with ctx.typing():
+            Move = functions.move(build, combatant, x, y, abso)  # Move combatant
+            if Move.moving:
+                await bot.change_presence(activity=discord.Game(name="Updating..."))
+                build = functions.GetPresentation(PRESENTATION_ID)  # Update Build
+                objects = functions.ObjectList(build)  # Update Object List
+                await bot.change_presence(activity=discord.Game(name="Making a bot"))
         embed = discord.Embed(title="Moving {}".format(combatant.name))
         embed.add_field(name=Move.title, value=Move.message)
-        await bot.say(embed=embed)  # Send move message
+        await ctx.send(embed=embed)  # Send move message
     else:  # Else Return Error
-        await bot.say("Error: No combatant found named '{}'".format(name))
+        await ctx.send("Error: No combatant found named '{}'".format(name))
 
 
-@bot.command(pass_context=True)
+@bot.command()
 async def size(ctx):
-    await bot.say("Size of the slide is {} Squares.".format(build.size))
+    await ctx.send("Size of the slide is {} Squares.".format(build.size))
 
-@bot.command(pass_context=True, aliases=['update'])
+
+@bot.command(aliases=['update'])
 async def refresh(ctx):
     global build
     global objects
-    await bot.change_presence(game=discord.Game(name="Updating..."))
-    await bot.send_typing(ctx.message.channel)
-    build = functions.GetPresentation(PRESENTATION_ID)  # Update Build
-    objects = functions.ObjectList(build)  # Update Object List
-    await bot.say('Updated!')
-    await bot.change_presence(game=discord.Game(name="Making a bot"))
+    await bot.change_presence(activity=discord.Game(name="Updating..."))
+    async with ctx.typing():
+        build = functions.GetPresentation(PRESENTATION_ID)  # Update Build
+        objects = functions.ObjectList(build)  # Update Object List
+    await ctx.send('Updated!')
+    await bot.change_presence(activity=discord.Game(name="Making a bot"))
 
 
-# @bot.event
-# async def on_command_error(error, ctx):
-#     channel = ctx.message.channel
-#     if isinstance(error, commands.MissingRequiredArgument):
-#         await send_cmd_help(ctx)
-#     elif isinstance(error, commands.BadArgument):
-#         await send_cmd_help(ctx)
-#     elif isinstance(error, commands.CommandInvokeError):
-#         print("Exception in command '{}', {}".format(ctx.command.qualified_name, error.original))
-#         traceback.print_tb(error.original.__traceback__)
+@bot.event
+async def on_command_error(ctx, error):
+    if isinstance(error, commands.CommandNotFound):
+        return
+
+    elif isinstance(error, (commands.UserInputError, commands.NoPrivateMessage, ValueError)):
+        return await ctx.send(
+            f"Error: {str(error)}\nUse `{ctx.prefix}help " + ctx.command.qualified_name + "` for help.")
+
+    elif isinstance(error, commands.CheckFailure):
+        msg = str(error) or "You are not allowed to run this command."
+        return await ctx.send(f"Error: {msg}")
+
+    elif isinstance(error, commands.CommandOnCooldown):
+        return await ctx.send("This command is on cooldown for {:.1f} seconds.".format(error.retry_after))
+
+    elif isinstance(error, CommandInvokeError):
+        original = error.original
+
+        if isinstance(original, Forbidden):
+            try:
+                return await ctx.author.send(
+                    f"Error: I am missing permissions to run this command. "
+                    f"Please make sure I have permission to send messages to <#{ctx.channel.id}>."
+                )
+            except HTTPException:
+                try:
+                    return await ctx.send(f"Error: I cannot send messages to this user.")
+                except HTTPException:
+                    return
+
+        elif isinstance(original, NotFound):
+            return await ctx.send("Error: I tried to edit or delete a message that no longer exists.")
+
+        elif isinstance(original, HTTPException):
+            if original.response.status == 400:
+                return await ctx.send(f"Error: Message is too long, malformed, or empty.\n{original.text}")
+            elif original.response.status == 500:
+                return await ctx.send("Error: Internal server error on Discord's end. Please try again.")
+
+        elif isinstance(original, OverflowError):
+            return await ctx.send(f"Error: A number is too large for me to store.")
+
+    await ctx.send(f"Error: {str(error)}\nUh oh, that wasn't supposed to happen! ")
 
 
 @bot.event
@@ -197,7 +235,7 @@ async def on_ready():
     print(bot.user.name)
     print(bot.user.id)
     print('------')
-    await bot.change_presence(game=discord.Game(name="Making a bot"))
+    await bot.change_presence(activity=discord.Game(name="Making a bot"))
 
 
 class Credentials:
