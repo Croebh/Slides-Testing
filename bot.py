@@ -104,9 +104,9 @@ async def range(ctx, x, y:int, maxrange:int=None):
     if str(x).isalpha():
         x = x.upper()
         embed = discord.Embed(title="Distances from ({}, {})".format(x, y))
-        x = functions.AlphConv(x.upper())
+        x = functions.alpha_conv(x.upper())
     else:
-        embed = discord.Embed(title="Distances from ({}, {})".format(functions.AlphConv(int(x)), y))
+        embed = discord.Embed(title="Distances from ({}, {})".format(functions.alpha_conv(int(x)), y))
     base = (int(x), int(y)  )
     out = []
     r = re.compile(r"(\d+)(?: ft.)")
@@ -153,7 +153,7 @@ async def move(ctx, name, *, args):
         y = int(args[1])
     if combatant:  # If combatant found
         async with ctx.typing():
-            Move = functions.move(build, combatant, x, y, abso)  # Move combatant
+            Move = functions.Move(build, combatant, x, y, abso)  # Move combatant
             if Move.moving:
                 await bot.change_presence(activity=discord.Game(name="Updating..."))
                 build = functions.GetPresentation(PRESENTATION_ID)  # Update Build

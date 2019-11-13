@@ -39,6 +39,7 @@ class GetPresentation:
         self.size.append(int(self.presentation.get('pageSize').get('width').get('magnitude')/emu))
         self.size.append(int(self.presentation.get('pageSize').get('height').get('magnitude')/emu))
 
+
 class ObjectList:
     def __init__(self, presentation, slide: int = 0):
         self.presentation = presentation
@@ -91,22 +92,22 @@ class ObjectList:
         for x in self.list:
             if name:
                 if name.lower() in x.get('name').lower():
-                    return simpleCombatant(self.presentation, x)
+                    return SimpleCombatant(self.presentation, x)
 
 
-class simpleCombatant:
+class SimpleCombatant:
     def __init__(self, presentation, name):
         self.objectId = name.get('objectId')
         self.name = name.get('name')
         self.coords = tuple(name.get('coords'))
         self.size = name.get('size')
-        x = AlphConv(self.coords[0])
+        x = alpha_conv(self.coords[0])
         y = self.coords[1]
         self.pos = "{}, {}".format(x, y)
 
 
 # Converts alpha coords to and from integers (A-1 ,B-2....Z-26)
-def AlphConv(coord):
+def alpha_conv(coord):
     alph = list('ABCDEFGHIJKLMNOPQRSTUVWXYZ')
     alph += [i+i for i in alph]
     if type(coord) == str:
@@ -120,28 +121,25 @@ def AlphConv(coord):
         return alph[coord-1]
 
 
-
-
-
 # Moves a given object a certain number of squares (0.5"), given by x and y transforms
-class move:
+class Move:
     def __init__(self, presentation, combatant, x=0, y: int = 0, absolute: bool = False):
         emu = 914400 / 2
         if type(x) == str:
             if x.isalpha():
-                x = AlphConv(x)
+                x = alpha_conv(x)
             else:
                 x = int(x)
         self.name = combatant.name
         if absolute:
             X, Y = combatant.coords
             self.title = "({0.pos}) -> ({1}, {2})".format(
-                combatant, AlphConv(min(x, presentation.size[0])), min(presentation.size[1],y))
+                combatant, alpha_conv(min(x, presentation.size[0])), min(presentation.size[1], y))
             x = x - X
             y = y - Y
         else:
             self.title = "({0.pos}) -> ({1}, {2})".format(
-                combatant, AlphConv(min(presentation.size[0], combatant.coords[0]+x)),
+                combatant, alpha_conv(min(presentation.size[0], combatant.coords[0] + x)),
                 min(presentation.size[1], combatant.coords[1]+y))
         if x + combatant.coords[0] > presentation.size[0]:
             x = presentation.size[0] - combatant.coords[0]
@@ -188,7 +186,7 @@ class Distance:
     def __init__(self, pointA, pointB):
 
 
-        if isinstance(pointA, simpleCombatant):
+        if isinstance(pointA, SimpleCombatant):
             x1 ,y1 = pointA.coords
 
 
@@ -197,7 +195,7 @@ class Distance:
                 y1 += 0.5
         else:
             x1, y1 = pointA
-        if isinstance(pointB, simpleCombatant):
+        if isinstance(pointB, SimpleCombatant):
             x2 ,y2 = pointB.coords
             if pointB.size != "Medium":
                 x2 += 0.5
