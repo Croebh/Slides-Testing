@@ -182,7 +182,7 @@ async def refresh(ctx):
     await ctx.send('Updated!')
     await bot.change_presence(activity=discord.Game(name="Making a bot"))
 
-
+# Full Credit to github.com/zhu.exe for this, modified from the one used on github.com/avrae/avrae
 @bot.event
 async def on_command_error(ctx, error):
     if isinstance(error, commands.CommandNotFound):
